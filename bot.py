@@ -3,17 +3,22 @@ import asyncio
 import os
 from pyrogram import Client, idle
 from aiohttp import web
-from plugins.route import web_server
-from config import *
+from route import web_server
 from database.database import dbclient, get_bot
+from config import API_HASH, APP_ID, TG_BOT_TOKEN, TG_BOT_WORKERS
 
 class Bot:
     def __init__(self):
-        self.api_id = int(os.environ.get("APP_ID"))
-        self.api_hash = os.environ.get("API_HASH")
-        self.main_bot_token = os.environ.get("TG_BOT_TOKEN")
-        self.workers = int(os.environ.get("TG_BOT_WORKERS", 4))
+        if APP_ID is None:
+            raise ValueError("APP_ID environment variable is not set.")
+        self.api_id = int(APP_ID)  # Convert APP_ID to int, raise error if invalid
+        self.api_hash = API_HASH or ""
+        self.main_bot_token = TG_BOT_TOKEN or ""
+        self.workers = TG_BOT_WORKERS or 4
         self.clients = []
+
+        if not all([self.api_id, self.api_hash, self.main_bot_token]):
+            raise ValueError("Missing required configuration: APP_ID, API_HASH, or TG_BOT_TOKEN.")
 
     async def start_bot_with_token(self, bot_token):
         """Start a bot with the given token."""
