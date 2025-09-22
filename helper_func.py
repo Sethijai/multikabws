@@ -1,281 +1,118 @@
-#(©)CodeFlix_Bots
-
+# helper_func.py
 import base64
 import re
 import asyncio
 from pyrogram import filters
 from pyrogram.enums import ChatMemberStatus
-from config import FORCE_SUB_CHANNEL, FORCE_SUB_CHANNEL2, FORCE_SUB_CHANNEL3, FORCE_SUB_CHANNEL4, ADMINS
-from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
+from config import FORCE_SUB_CHANNEL, FORCE_SUB_CHANNEL2, FORCE_SUB_CHANNEL3, FORCE_SUB_CHANNEL4, ADMINS, PROTECT_CONTENT, FILE_AUTO_DELETE, INDIVIDUAL_AUTO_DELETE, CHANNEL_ID
+from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant, ChannelInvalid, ChatAdminRequired
 from pyrogram.errors import FloodWait
 from typing import Tuple, Union
+from database.database import get_bot
 
 async def is_subscribed(filter, client, update):
-    if not FORCE_SUB_CHANNEL:
-        return True
+    """Check if a user is subscribed to all required channels for the bot."""
     user_id = update.from_user.id
     if user_id in ADMINS:
         return True
-    try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL, user_id = user_id)
-    except UserNotParticipant:
-        return False
 
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-        return False
-    else:
-        return True
+    bot_token = client.TG_BOT_TOKEN
+    bot_settings = await get_bot(bot_token) or {}
+    force_sub_channels = bot_settings.get('force_sub_channels', [FORCE_SUB_CHANNEL, FORCE_SUB_CHANNEL2, FORCE_SUB_CHANNEL3, FORCE_SUB_CHANNEL4])
 
-async def is_subscribed(filter, client, update):
-    if not FORCE_SUB_CHANNEL2:
-        return True
-    user_id = update.from_user.id
-    if user_id in ADMINS:
-        return True
-    try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL2, user_id = user_id)
-    except UserNotParticipant:
-        return False
+    for channel in force_sub_channels:
+        if not channel:
+            continue
+        try:
+            member = await client.get_chat_member(chat_id=channel, user_id=user_id)
+            if member.status not in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
+                return False
+        except UserNotParticipant:
+            return False
+        except Exception as e:
+            print(f"Error checking subscription for channel {channel}: {e}")
+            return False
+    return True
 
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-        return False
-    else:
-        return True
+subscribed = filters.create(is_subscribed)
 
-async def is_subscribed(filter, client, update):
-    if not FORCE_SUB_CHANNEL3:
-        return True
-    user_id = update.from_user.id
-    if user_id in ADMINS:
-        return True
-    try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL3, user_id = user_id)
-    except UserNotParticipant:
-        return False
-
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-        return False
-    else:
-        return True
-
-async def is_subscribed(filter, client, update):
-    if not FORCE_SUB_CHANNEL4:
-        return True
-    user_id = update.from_user.id
-    if user_id in ADMINS:
-        return True
-    try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL4, user_id = user_id)
-    except UserNotParticipant:
-        return False
-
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-        return False
-    else:
-        return True
-    
-async def is_subscribed(filter, client, update):
-    if not FORCE_SUB_CHANNEL:
-        return True
-    if not FORCE_SUB_CHANNEL2:
-        return True
-    if not FORCE_SUB_CHANNEL3:
-        return True  
-    if not FORCE_SUB_CHANNEL4:
-        return True
-    user_id = update.from_user.id
-    if user_id in ADMINS:
-        return True
-    try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL, user_id = user_id)
-    except UserNotParticipant:
-        return False
-
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-        return False
-    try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL2, user_id = user_id)
-    except UserNotParticipant:
-        return False
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-        return False
-    try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL3, user_id = user_id)
-    except UserNotParticipant:
-        return False        
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-        return False
-    try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL4, user_id = user_id)
-    except UserNotParticipant:
-        return False                
-    else:
-        return True
-
-
-async def encode(string):
+async def encode(string: str) -> str:
     string_bytes = string.encode("ascii")
-    base64_bytes = base64.urlsafe_b64encode(string_bytes)
-    base64_string = base64_bytes.decode("ascii").strip("=")
-    return base64_string
+    base64_bytes = base64.b64encode(string_bytes)
+    return base64_bytes.decode("ascii")
 
-async def decode(base64_string):
-    base64_string = base64_string.strip("=")
-    base64_bytes = (base64_string + "=" * (-len(base64_string) % 4)).encode("ascii")
-    string_bytes = base64.urlsafe_b64decode(base64_bytes)
-    string = string_bytes.decode("ascii")
-    return string
-    
-async def encode_new(string):
-    string_bytes = string.encode("ascii")
-    base64_bytes = base64.urlsafe_b64encode(string_bytes)
-    base64_string2 = base64_bytes.decode("ascii").strip("=")
-    return base64_string2
-
-async def decode_new(base64_string2):
+async def decode(base64_string: str) -> str:
     try:
-        base64_string2 = base64_string2.strip("=")
-        base64_bytes = (base64_string2 + "=" * (-len(base64_string2) % 4)).encode("ascii")
-        string_bytes = base64.urlsafe_b64decode(base64_bytes)
-        string = string_bytes.decode("ascii")
-        return string
+        base64_bytes = base64_string.encode("ascii")
+        string_bytes = base64.b64decode(base64_bytes)
+        return string_bytes.decode("ascii")
     except Exception as e:
-        print(f"Decode_new error: {e}")
-        raise
+        print(f"Decoding error: {e}")
+        raise ValueError("Invalid encoded string")
 
-async def encode_link(user_id: int = None, f_msg_id: int = None, s_msg_id: int = None, channel_id: int = None) -> str:
-    """
-    Encode a Telegram bot deep link for batch or HACKHEIST access with *8 multiplication.
-    
-    Args:
-        user_id: User ID (required for HACKHEIST, optional for batch)
-        f_msg_id: First message ID (required)
-        s_msg_id: Second message ID (optional for batch, None for HACKHEIST or single message)
-        channel_id: Channel ID (required)
-        
-    Returns:
-        Telegram bot deep link: https://t.me/AK_LECTURES_BOT?start={encoded_string}
-    """
-    if channel_id is None or f_msg_id is None:
-        raise ValueError("channel_id and f_msg_id are required")
-    
-    # Validate input types
-    if not all(isinstance(x, int) for x in [user_id, f_msg_id, s_msg_id, channel_id] if x is not None):
-        raise ValueError("All IDs must be integers")
-    
-    # Apply *8 multiplication
-    channel_id_encoded = channel_id * 43
-    f_msg_id_encoded = f_msg_id * 43
-    s_msg_id_encoded = s_msg_id * 43 if s_msg_id is not None else None
-    
-    # Create the string to encode
-    if user_id is not None and s_msg_id is None:
-        # HACKHEIST link: HACKHEIST-user_id-f_msg_id_encoded-channel_id_encoded
-        raw_string = f"HACKHEIST-{user_id}-{f_msg_id_encoded}-{channel_id_encoded}"
-    elif s_msg_id is not None:
-        # Batch link for message range
-        raw_string = f"get-{channel_id_encoded}-{f_msg_id_encoded}-{s_msg_id_encoded}"
+async def encode_link(user_id: int = None, f_msg_id: int = None, channel_id: Union[int, str] = None, s_msg_id: int = None) -> str:
+    if user_id:
+        string = f"HACKHEIST-{user_id}-{f_msg_id}-{channel_id}"
+    elif s_msg_id:
+        string = f"batch-{f_msg_id}-{channel_id}-{s_msg_id}"
     else:
-        # Batch link for single message
-        raw_string = f"get-{channel_id_encoded}-{f_msg_id_encoded}"
-    
-    # Encode to base64
-    string_bytes = raw_string.encode("ascii")
-    base64_bytes = base64.urlsafe_b64encode(string_bytes)
-    base64_string = base64_bytes.decode("ascii").rstrip("=")
-    
-    return f"{base64_string}"
+        string = f"get-{f_msg_id * abs(int(channel_id))}"
+    return f"https://t.me/{Bot.username}?start={await encode(string)}"
 
-async def decode_link(encoded_string: str) -> Tuple[str, Union[int, None], int, int, Union[int, None]]:
-    """
-    Decode a base64 string from a Telegram bot deep link, reversing *8 multiplication.
+async def decode_link(base64_string: str) -> Tuple[str, int, int, Union[int, str], int]:
+    decoded = await decode(base64_string)
+    parts = decoded.split("-", maxsplit=3)
+    if len(parts) < 3:
+        raise ValueError("Invalid link format")
     
-    Args:
-        encoded_string: The base64 encoded string (without the Telegram URL prefix)
-        
-    Returns:
-        Tuple of (link_type, user_id, f_msg_id, channel_id, s_msg_id)
-        - link_type: "HACKHEIST" or "batch"
-        - user_id: User ID (for HACKHEIST) or None (for batch)
-        - f_msg_id: First message ID
-        - channel_id: Channel ID
-        - s_msg_id: Second message ID (None for single message or HACKHEIST)
-    """
-    # Restore padding
-    encoded_string = encoded_string + "=" * (-len(encoded_string) % 4)
-    
-    # Decode base64
-    try:
-        string_bytes = base64.urlsafe_b64decode(encoded_string)
-        decoded_string = string_bytes.decode("ascii")
-    except (base64.binascii.Error, UnicodeDecodeError):
-        raise ValueError("Invalid base64 encoded string")
-    
-    # Parse the decoded string
-    parts = decoded_string.split("-")
-    
-    if decoded_string.startswith("HACKHEIST-"):
-        if len(parts) not in [4, 5]:
-            raise ValueError("Invalid HACKHEIST string structure")
-        try:
-            user_id = int(parts[1])
-            f_msg_id = int(parts[2]) // 43
-            if len(parts) == 5 and parts[3] == "":
-                # Negative channel_id: HACKHEIST-user_id-f_msg_id_encoded--channel_id_encoded
-                channel_id = int(f"-{parts[4]}") // 43
-            else:
-                # Positive channel_id: HACKHEIST-user_id-f_msg_id_encoded-channel_id_encoded
-                channel_id = int(parts[3]) // 43
-            return "HACKHEIST", user_id, f_msg_id, channel_id, None
-        except ValueError:
-            raise ValueError("Invalid number format in HACKHEIST string")
-    
-    elif decoded_string.startswith("get-"):
-        if len(parts) not in [3, 4, 5]:
-            raise ValueError("Invalid batch string structure")
-        try:
-            if len(parts) == 5 and parts[1] == "":
-                # Negative channel_id: get--channel_id_encoded-f_msg_id_encoded-s_msg_id_encoded
-                channel_id = int(f"-{parts[2]}") // 43
-                f_msg_id = int(parts[3]) // 43
-                s_msg_id = int(parts[4]) // 43
-            elif len(parts) == 4 and parts[1] != "":
-                # Positive channel_id: get-channel_id_encoded-f_msg_id_encoded-s_msg_id_encoded
-                channel_id = int(parts[1]) // 43
-                f_msg_id = int(parts[2]) // 43
-                s_msg_id = int(parts[3]) // 43
-            elif len(parts) == 4 and parts[1] == "":
-                # Negative channel_id, single message: get--channel_id_encoded-f_msg_id_encoded
-                channel_id = int(f"-{parts[2]}") // 43
-                f_msg_id = int(parts[3]) // 43
-                s_msg_id = None
-            elif len(parts) == 3:
-                # Positive channel_id, single message: get-channel_id_encoded-f_msg_id_encoded
-                channel_id = int(parts[1]) // 43
-                f_msg_id = int(parts[2]) // 43
-                s_msg_id = None
-            else:
-                raise ValueError("Invalid batch string structure")
-            return "batch", None, f_msg_id, channel_id, s_msg_id
-        except ValueError:
-            raise ValueError("Invalid number format in batch string")
-    
+    link_type = parts[0]
+    if link_type == "HACKHEIST":
+        user_id = int(parts[1])
+        f_msg_id = int(parts[2])
+        channel_id = parts[3]
+        s_msg_id = None
+    elif link_type == "batch":
+        f_msg_id = int(parts[1])
+        channel_id = parts[2]
+        s_msg_id = int(parts[3])
+        user_id = None
     else:
-        raise ValueError("Invalid encoded string format")
-
-
-async def get_messages(client, message_ids, channel_id):
-    """
-    Fetch messages from a specified channel by message IDs.
+        raise ValueError("Unknown link type")
     
-    Args:
-        client: Pyrogram client
-        message_ids: List of message IDs to fetch
-        channel_id: Channel ID to fetch messages from
-        
-    Returns:
-        List of fetched messages (may include None for inaccessible messages)
-    """
+    return link_type, user_id, f_msg_id, channel_id, s_msg_id
+
+async def get_message_id(client, message):
+    if message.forward_from_chat:
+        return message.forward_from_chat.id, message.forward_from_message_id
+    elif message.text and (message.text.startswith("https://t.me/") or message.text.startswith("t.me/")):
+        if message.text.startswith("https://"):
+            link = message.text
+        else:
+            link = "https://" + message.text
+        try:
+            pattern = r"https://t\.me/(?:c/)?(?:@)?([a-zA-Z0-9_]+)/(\d+)"
+            match = re.match(pattern, link)
+            if not match:
+                return None, None
+            channel_username, message_id = match.groups()
+            if channel_username.startswith("-"):
+                channel_id = int(channel_username)
+            else:
+                chat = await client.get_chat(f"@{channel_username}" if not channel_username.startswith("@") else channel_username)
+                channel_id = chat.id
+            return channel_id, int(message_id)
+        except Exception as e:
+            print(f"Error parsing link: {e}")
+            return None, None
+    return None, None
+
+async def get_messages(client, message_ids, channel_id, bot_token: str = None):
+    """Fetch messages from a specified channel, using bot-specific database channel if available."""
+    if bot_token:
+        bot = await get_bot(bot_token)
+        if bot and bot.get('database_channel'):
+            channel_id = bot['database_channel']
+
     messages = []
     total_messages = 0
 
@@ -286,7 +123,6 @@ async def get_messages(client, message_ids, channel_id):
         print("No channel ID provided")
         return messages
 
-    # Validate channel access
     try:
         await client.get_chat(channel_id)
         print(f"Access confirmed for channel {channel_id}")
@@ -329,8 +165,6 @@ async def get_messages(client, message_ids, channel_id):
                 messages.extend(valid_msgs)
             except Exception as e:
                 print(f"Error after FloodWait for IDs {temb_ids} in channel {channel_id}: {e}")
-        except MessageIdsInvalid:
-            print(f"Invalid message IDs: {temb_ids} in channel {channel_id}")
         except Exception as e:
             print(f"Error fetching messages for IDs {temb_ids} in channel {channel_id}: {e}")
         total_messages += len(temb_ids)
@@ -340,56 +174,3 @@ async def get_messages(client, message_ids, channel_id):
     else:
         print(f"No messages fetched for IDs {message_ids} in channel {channel_id}")
     return messages
-
-async def get_message_id(client, message):
-    if message.forward_from_chat:
-        # Handle forwarded messages from channels
-        return message.forward_from_chat.id, message.forward_from_message_id
-    elif message.forward_from:
-        # Forwarded from a user, invalid for this use case
-        return None, 0
-    elif message.text:
-        # Handle both private (https://t.me/c/2493255368/45956) and public (https://t.me/username/45956) links
-        pattern = r"https://t.me/(?:c/)?([^/]+)/(\d+)"
-        matches = re.match(pattern, message.text)
-        if not matches:
-            return None, 0
-        channel_identifier = matches.group(1)  # Either channel ID (digits) or username
-        msg_id = int(matches.group(2))
-        try:
-            if channel_identifier.isdigit():
-                # Private channel (e.g., 2493255368)
-                channel_id = int(f"-100{channel_identifier}")
-            else:
-                # Public channel (e.g., username)
-                chat = await client.get_chat(channel_identifier)
-                channel_id = chat.id
-            return channel_id, msg_id
-        except:
-            return None, 0
-    else:
-        return None, 0
-
-def get_readable_time(seconds: int) -> str:
-    count = 0
-    up_time = ""
-    time_list = []
-    time_suffix_list = ["s", "m", "h", "days"]
-    while count < 4:
-        count += 1
-        remainder, result = divmod(seconds, 60) if count < 3 else divmod(seconds, 24)
-        if seconds == 0 and remainder == 0:
-            break
-        time_list.append(int(result))
-        seconds = int(remainder)
-    hmm = len(time_list)
-    for x in range(hmm):
-        time_list[x] = str(time_list[x]) + time_suffix_list[x]
-    if len(time_list) == 4:
-        up_time += f"{time_list.pop()}, "
-    time_list.reverse()
-    up_time += ":".join(time_list)
-    return up_time
-
-subscribed = filters.create(is_subscribed)
-       
