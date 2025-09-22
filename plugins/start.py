@@ -12,6 +12,23 @@ from config import *
 from helper_func import subscribed, encode_link, decode_link, get_messages
 from database.database import add_user, del_user, full_userbase, present_user, add_bot, get_bot, update_bot_settings, is_bot_creator_or_admin
 
+async def delete_files(codeflix_msgs, client, message, delete_time=None):
+    """Delete messages after the specified time."""
+    if not codeflix_msgs:
+        return
+    
+    if delete_time is None:
+        delete_time = FILE_AUTO_DELETE
+    
+    await asyncio.sleep(delete_time)
+    
+    message_ids = [msg.id for msg in codeflix_msgs]
+    try:
+        await client.delete_messages(chat_id=message.chat.id, message_ids=message_ids)
+        print(f"Deleted {len(message_ids)} messages for user {message.chat.id}")
+    except Exception as e:
+        print(f"Failed to delete messages for user {message.chat.id}: {e}")
+
 @Bot.on_message(filters.command('start') & filters.private & subscribed)
 async def start_command(client: Client, message: Message):
     id = message.from_user.id
@@ -106,20 +123,20 @@ async def start_command(client: Client, message: Message):
                     await message.reply_text("❌ Failed to send the content!")
                     return
             
-            k = await client.send_message(
-                chat_id=message.from_user.id,
-                text=f"<b>‼️ 𝐓𝐡𝐢𝐬 𝐋𝐄𝐂𝐓𝐔𝐑𝐄/𝐏𝐃𝐅 𝐰𝐢𝐥𝐥 𝐛𝐞 <u>𝗮𝘂𝘁𝗼-𝗱𝗲𝗹𝗲𝘁𝗲𝗱 𝗶𝗻 {humanize.naturaldelta(individual_delete_timer)}</u> 💀</b>\n\n"
-                     f"<b>⚡ Watch Lecture now ✅ or Save it - Forward, Download & Keep in your Gallery before time runs out!</b>\n\n"
-                     f"<b>🤝 Don’t forget—share with friends, knowledge grows when shared ❣️</b>\n\n"
-                     f"<b>😎 Chill! Even after deletion, you can always re-access everything on our websites 😉</b>\n\n"
-                     f"<b><a href='https://yashyasag.github.io/hiddens_officials'>✨ 𝗘𝘅𝗽𝗹𝗼𝗿𝗲 𝗠𝗼𝗿𝗲 𝗪𝗲𝗯𝘀𝗶𝘁𝗲𝘀 ✨</a></b>",
-            )
-            
-            codeflix_msgs.append(k)
-            asyncio.create_task(delete_files(codeflix_msgs, client, message, k, individual_delete_timer))
+            if codeflix_msgs:
+                k = await client.send_message(
+                    chat_id=message.from_user.id,
+                    text=f"<b>‼️ 𝐓𝐡𝐢𝐬 𝐋𝐄𝐂𝐓𝐔𝐑𝐄/𝐏𝐃𝐅 𝐰𝐢𝐥𝐥 𝐛𝐞 <u>𝗮𝘂𝘁𝗼-𝗱𝗲𝗹𝗲𝘁𝗲𝗱 𝗶𝗻 {humanize.naturaldelta(individual_delete_timer)}</u> 💀</b>\n\n"
+                         f"<b>⚡ Watch Lecture now ✅ or Save it - Forward, Download & Keep in your Gallery before time runs out!</b>\n\n"
+                         f"<b>🤝 Don’t forget—share with friends, knowledge grows when shared ❣️</b>\n\n"
+                         f"<b>😎 Chill! Even after deletion, you can always re-access everything on our websites 😉</b>\n\n"
+                         f"<b><a href='https://yashyasag.github.io/hiddens_officials'>✨ 𝗘𝘅𝗽𝗹𝗼𝗿𝗲 �_M𝗼𝗿𝗲 𝗪𝗲𝗯𝘀𝗶𝘁𝗲𝘀 ✨</a></b>",
+                )
+                codeflix_msgs.append(k)
+                asyncio.create_task(delete_files(codeflix_msgs, client, message, delete_time=individual_delete_timer))
             return
 
-        elif link_type == "batch":
+        elif link_type == "batch" or link_type == "get":
             if s_msg_id is not None:
                 if f_msg_id <= s_msg_id:
                     ids = list(range(f_msg_id, s_msg_id + 1))
@@ -216,21 +233,21 @@ async def start_command(client: Client, message: Message):
                 except Exception as e:
                     print(f"Failed to send message: {e}")
 
-            k = await client.send_message(
-                chat_id=message.from_user.id,
-                text=f"<b>🔥 Hurry! These Lectures/PDFs will be <u>deleted automatically in {humanize.naturaldelta(bulk_delete_timer)}</u> ⏳</b>\n\n"
-                     f"<b>𝘚𝘰 𝘍𝘰𝘳 𝘚𝘢𝘷𝘪𝘯𝘨 𝘓𝘦𝘤𝘵𝘶𝘳𝘦/𝘗𝘥𝘧 𝘤𝘭𝘪𝘤𝘬 𝘰𝘯 𝘣𝘦𝘭𝘰𝘸 𝘣𝘶𝘵𝘵𝘰𝘯(😁 𝗖𝗟𝗜𝗖𝗞 𝗧𝗢 𝗦𝗔𝗩𝗘 📥) then 𝘠𝘰𝘶 𝘤𝘢𝘯 𝘚𝘢𝘷𝘦 𝘪𝘯 𝘎𝘢𝘭𝘭𝘦𝘳𝘺 😊</b>\n\n"
-                     f"<b>😎 Don’t worry! Even after deletion, you can still re-access everything anytime through our websites 😘</b>\n\n"
-                     f"<b> <a href=https://yashyasag.github.io/hiddens_officials>🌟 𝗩𝗶𝘀𝗶𝘁 𝗠𝗼𝗿𝗲 𝗪𝗲𝗯𝘀𝗶𝘁𝗲𝘀 🌟</a></b>",
-            )
-
-            codeflix_msgs.append(k)
-            asyncio.create_task(delete_files(codeflix_msgs, client, message, k, bulk_delete_timer))
+            if codeflix_msgs:
+                k = await client.send_message(
+                    chat_id=message.from_user.id,
+                    text=f"<b>🔥 Hurry! These Lectures/PDFs will be <u>deleted automatically in {humanize.naturaldelta(bulk_delete_timer)}</u> ⏳</b>\n\n"
+                         f"<b>𝘚𝘰 𝘍𝘰𝘳 𝘚𝘢𝘷𝘪𝘯𝘨 𝘓𝘦𝘤𝘵𝘶𝘳𝘦/𝘗𝘥𝘧 𝘤𝘭𝘪𝘤𝘬 𝘰𝘯 𝘣𝘦𝘭𝘰𝘸 𝘣𝘶𝘵𝘵𝘰𝘯(😁 𝗖𝗟𝗜𝗖𝗞 𝗧𝗢 𝗦𝗔𝗩𝗘 📥) then 𝘠𝘰𝘶 𝘤𝘢𝘯 𝘚𝘢𝘷𝘦 𝘪𝘯 𝘎𝘢𝘭𝘭𝘦𝘳𝘺 😊</b>\n\n"
+                         f"<b>😎 Don’t worry! Even after deletion, you can still re-access everything anytime through our websites 😘</b>\n\n"
+                         f"<b> <a href=https://yashyasag.github.io/hiddens_officials>🌟 �_V𝗶𝘀𝗶𝘁 𝗠𝗼𝗿𝗲 𝗪𝗲𝗯𝘀𝗶𝘁𝗲𝘀 🌟</a></b>",
+                )
+                codeflix_msgs.append(k)
+                asyncio.create_task(delete_files(codeflix_msgs, client, message, delete_time=bulk_delete_timer))
             return
 
     reply_markup = InlineKeyboardMarkup(
         [[
-            InlineKeyboardButton("🔥 �_M𝗔𝗜𝗡 𝗪𝗘𝗕𝗦𝗜𝗧𝗘 🔥", url="https://yashyasag.github.io/hiddens_officials")
+            InlineKeyboardButton("🔥 𝗠𝗔𝗜𝗡 𝗪𝗘𝗕𝗦𝗜𝗧𝗘 🔥", url="https://yashyasag.github.io/hiddens_officials")
         ],[
             InlineKeyboardButton("‼️ 𝗕𝗔𝗖𝗞𝗨𝗣 𝗖𝗛𝗔𝗡𝗡𝗘𝗟 ‼️", url="https://t.me/+Sk3pfX_PWTQ3NmI1")
         ],[
@@ -415,6 +432,13 @@ async def settings_command(client: Client, message: Message):
             await message.reply_text("You are not authorized to manage this bot's settings.")
             return
 
+        # Store bot_token in session data with a unique session ID
+        session_id = str(random.randint(1000, 9999))  # Short random ID
+        await client.set_session_data(
+            message.from_user.id,
+            {"settings_session_id": session_id, "bot_token": bot_token}
+        )
+
         force_sub_channels = bot.get('force_sub_channels', [None, None, None, None])
         bulk_delete = humanize.naturaldelta(bot.get('bulk_delete_timer', FILE_AUTO_DELETE))
         individual_delete = humanize.naturaldelta(bot.get('individual_delete_timer', INDIVIDUAL_AUTO_DELETE))
@@ -422,11 +446,11 @@ async def settings_command(client: Client, message: Message):
         db_channel = bot.get('database_channel', 'Not set')
 
         reply_markup = InlineKeyboardMarkup([
-            [InlineKeyboardButton("Force Sub Channels", callback_data=f"set_force_sub:{bot_token}")],
-            [InlineKeyboardButton(f"Bulk Delete Timer: {bulk_delete}", callback_data=f"set_bulk_delete:{bot_token}")],
-            [InlineKeyboardButton(f"Individual Delete Timer: {individual_delete}", callback_data=f"set_individual_delete:{bot_token}")],
-            [InlineKeyboardButton(f"Protect Content: {protect_content}", callback_data=f"set_protect_content:{bot_token}")],
-            [InlineKeyboardButton(f"Database Channel: {db_channel}", callback_data=f"set_db_channel:{bot_token}")]
+            [InlineKeyboardButton("Force Sub Channels", callback_data=f"set_force_sub:{session_id}")],
+            [InlineKeyboardButton(f"Bulk Delete Timer: {bulk_delete}", callback_data=f"set_bulk_delete:{session_id}")],
+            [InlineKeyboardButton(f"Individual Delete Timer: {individual_delete}", callback_data=f"set_individual_delete:{session_id}")],
+            [InlineKeyboardButton(f"Protect Content: {protect_content}", callback_data=f"set_protect_content:{session_id}")],
+            [InlineKeyboardButton(f"Database Channel: {db_channel}", callback_data=f"set_db_channel:{session_id}")]
         ])
 
         await message.reply_text(
@@ -450,8 +474,15 @@ async def settings_command(client: Client, message: Message):
 async def settings_callback(client: Client, callback_query: CallbackQuery):
     """Handle settings callback queries."""
     try:
-        action, bot_token = callback_query.data.split(":", 1)
+        action, session_id = callback_query.data.split(":", 1)
         action = action.split("_")[1]
+
+        # Retrieve bot_token from session data
+        session_data = await client.get_session_data(callback_query.from_user.id)
+        if not session_data or session_data.get("settings_session_id") != session_id:
+            await callback_query.answer("Session expired or invalid.", show_alert=True)
+            return
+        bot_token = session_data.get("bot_token")
 
         if not await is_bot_creator_or_admin(callback_query.from_user.id, bot_token):
             await callback_query.answer("You are not authorized to manage this bot's settings.", show_alert=True)
@@ -466,23 +497,32 @@ async def settings_callback(client: Client, callback_query: CallbackQuery):
                 "Send new channel IDs in the format:\n"
                 "1 -100123456789\n2 -100987654321\n3 -100...\n4 -100...\n\n"
                 "Leave a line empty (e.g., '2') to unset a channel.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Cancel", callback_data=f"cancel:{bot_token}")]])
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Cancel", callback_data=f"cancel:{session_id}")]])
             )
-            await client.set_session_data(callback_query.from_user.id, {"action": "force_sub", "bot_token": bot_token})
+            await client.set_session_data(
+                callback_query.from_user.id,
+                {"action": "force_sub", "bot_token": bot_token, "settings_session_id": session_id}
+            )
 
         elif action == "bulk_delete":
             await callback_query.message.reply_text(
                 "Send the new Bulk Delete Timer in seconds (e.g., 3600 for 1 hour).",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Cancel", callback_data=f"cancel:{bot_token}")]])
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Cancel", callback_data=f"cancel:{session_id}")]])
             )
-            await client.set_session_data(callback_query.from_user.id, {"action": "bulk_delete", "bot_token": bot_token})
+            await client.set_session_data(
+                callback_query.from_user.id,
+                {"action": "bulk_delete", "bot_token": bot_token, "settings_session_id": session_id}
+            )
 
         elif action == "individual_delete":
             await callback_query.message.reply_text(
                 "Send the new Individual Delete Timer in seconds (e.g., 259200 for 3 days).",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Cancel", callback_data=f"cancel:{bot_token}")]])
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Cancel", callback_data=f"cancel:{session_id}")]])
             )
-            await client.set_session_data(callback_query.from_user.id, {"action": "individual_delete", "bot_token": bot_token})
+            await client.set_session_data(
+                callback_query.from_user.id,
+                {"action": "individual_delete", "bot_token": bot_token, "settings_session_id": session_id}
+            )
 
         elif action == "protect_content":
             bot = await get_bot(bot_token)
@@ -497,9 +537,12 @@ async def settings_callback(client: Client, callback_query: CallbackQuery):
         elif action == "db_channel":
             await callback_query.message.reply_text(
                 "Send the new Database Channel ID or username (e.g., @ChannelUsername or -100123456789).",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Cancel", callback_data=f"cancel:{bot_token}")]])
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Cancel", callback_data=f"cancel:{session_id}")]])
             )
-            await client.set_session_data(callback_query.from_user.id, {"action": "db_channel", "bot_token": bot_token})
+            await client.set_session_data(
+                callback_query.from_user.id,
+                {"action": "db_channel", "bot_token": bot_token, "settings_session_id": session_id}
+            )
 
         await callback_query.answer()
 
@@ -589,21 +632,12 @@ async def handle_settings_input(client: Client, message: Message):
 @Bot.on_callback_query(filters.regex(r'^cancel:'))
 async def cancel_callback(client: Client, callback_query: CallbackQuery):
     """Handle cancel button for settings input."""
-    bot_token = callback_query.data.split(":", 1)[1]
-    if await is_bot_creator_or_admin(callback_query.from_user.id, bot_token):
-        await client.set_session_data(callback_query.from_user.id, {})
-        await callback_query.message.reply_text("Action cancelled.")
-        await callback_query.message.delete()
+    session_id = callback_query.data.split(":", 1)[1]
+    session_data = await client.get_session_data(callback_query.from_user.id)
+    if session_data and session_data.get("settings_session_id") == session_id:
+        bot_token = session_data.get("bot_token")
+        if await is_bot_creator_or_admin(callback_query.from_user.id, bot_token):
+            await client.set_session_data(callback_query.from_user.id, {})
+            await callback_query.message.reply_text("Action cancelled.")
+            await callback_query.message.delete()
     await callback_query.answer()
-
-async def delete_files(codeflix_msgs, client, message, k, delete_time=None):
-    if delete_time is None:
-        delete_time = FILE_AUTO_DELETE
-    
-    await asyncio.sleep(delete_time)
-    
-    for msg in codeflix_msgs:
-        try:
-            await client.delete_messages(chat_id=msg.chat.id, message_ids=[msg.id])
-        except Exception as e:
-            print(f"The attempt to delete the media {msg.id} was unsuccessful: {e}")
