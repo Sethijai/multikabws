@@ -6,14 +6,17 @@ dbclient = pymongo.MongoClient(DB_URI)
 database = dbclient[DB_NAME]
 user_data = database['users']
 bot_data = database['bots']
-session_data = database['sessions']  # New collection for session data
+session_data = database['sessions']  # For command session data
 
 async def add_bot(token: str, creator_id: int, force_sub_channels: list = None, 
-                 bulk_delete_timer: int = None, individual_delete_timer: int = None, 
-                 protect_content: bool = True, database_channel: str = None):
+                 force_sub_names: list = None, bulk_delete_timer: int = None, 
+                 individual_delete_timer: int = None, protect_content: bool = True, 
+                 database_channel: str = None):
     """Add a new bot to the database with default settings."""
     if force_sub_channels is None:
         force_sub_channels = [FORCE_SUB_CHANNEL, FORCE_SUB_CHANNEL2, FORCE_SUB_CHANNEL3, FORCE_SUB_CHANNEL4]
+    if force_sub_names is None:
+        force_sub_names = ["Channel 1", "Channel 2", "Channel 3", "Channel 4"]  # Default button names
     if bulk_delete_timer is None:
         bulk_delete_timer = FILE_AUTO_DELETE
     if individual_delete_timer is None:
@@ -25,6 +28,7 @@ async def add_bot(token: str, creator_id: int, force_sub_channels: list = None,
         'token': token,
         'creator_id': creator_id,
         'force_sub_channels': force_sub_channels,
+        'force_sub_names': force_sub_names,  # Store custom button names
         'bulk_delete_timer': bulk_delete_timer,
         'individual_delete_timer': individual_delete_timer,
         'protect_content': protect_content,
