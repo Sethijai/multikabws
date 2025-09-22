@@ -14,7 +14,7 @@ from plugins.start import (
 )
 from plugins.link_generator import genlink_command, batch_command, nbatch_command, custom_batch_command, handle_custom_batch_input
 from plugins.channel_post import forward_to_channel
-from plugins.web_server import run_web_server
+from plugins.route import web_server  # Changed from plugins.web_server to route
 
 async def initialize_bot(bot_token, bot_name):
     """Initialize a bot with the given token and name."""
@@ -81,7 +81,11 @@ async def main():
     
     # Start web server
     if 'PORT' in os.environ:
-        await run_web_server()
+        web_app = await web_server()
+        runner = web.AppRunner(web_app)
+        await runner.setup()
+        site = web.TCPSite(runner, '0.0.0.0', int(os.environ['PORT']))
+        await site.start()
 
     # Keep bots running
     await asyncio.Event().wait()
