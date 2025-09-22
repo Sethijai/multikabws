@@ -1,95 +1,71 @@
 # bot.py
-import os
 import asyncio
-from pyrogram import Client, __version__
-from pyrogram.raw.all import layer
-from pyrogram.handlers import MessageHandler, CallbackQueryHandler
+import os
+from pyrogram import Client, idle
+from aiohttp import web
+from route import web_server
 from config import *
 from database.database import dbclient, get_bot
-from plugins.start import (
-    start_command, not_joined, get_users, send_text,
-    clone_bot_command, force_sub_channel_command, auto_delete_command,
-    individual_auto_delete_command, database_channel_id_command, protect_content_command,
-    handle_settings_input
-)
-from plugins.link_generator import genlink_command, batch_command, nbatch_command, custom_batch_command, handle_custom_batch_input
-from plugins.channel_post import forward_to_channel
-from plugins.route import web_server  # Changed from plugins.web_server to route
 
-async def initialize_bot(bot_token, bot_name):
-    """Initialize a bot with the given token and name."""
+async def start_bot_with_token(bot_token, api_id, api_hash, workers):
+    """Start a bot with the given token."""
     try:
-        bot = Client(
-            name=bot_name,
-            api_id=APP_ID,
-            api_hash=API_HASH,
+        app = Client(
+            f"bot_{bot_token[:10]}",  # Unique session name
+            api_id=api_id,
+            api_hash=api_hash,
             bot_token=bot_token,
-            workers=TG_BOT_WORKERS,
+            workers=workers,
             plugins={"root": "plugins"}
         )
-        bot.TG_BOT_TOKEN = bot_token  # Attach token to client for use in handlers
-
-        # Register handlers
-        bot.add_handler(MessageHandler(start_command, filters.command('start') & filters.private & subscribed))
-        bot.add_handler(MessageHandler(not_joined, filters.command('start') & filters.private))
-        bot.add_handler(MessageHandler(get_users, filters.command('users') & filters.private & filters.user(ADMINS)))
-        bot.add_handler(MessageHandler(send_text, filters.command('broadcast') & filters.private & filters.user(ADMINS)))
-        bot.add_handler(MessageHandler(clone_bot_command, filters.command('clone_bot') & filters.private & filters.user(ADMINS)))
-        bot.add_handler(MessageHandler(force_sub_channel_command, filters.command('force_sub_channel') & filters.private))
-        bot.add_handler(MessageHandler(auto_delete_command, filters.command('auto_delete') & filters.private))
-        bot.add_handler(MessageHandler(individual_auto_delete_command, filters.command('individual_auto_delete') & filters.private))
-        bot.add_handler(MessageHandler(database_channel_id_command, filters.command('database_channel_id') & filters.private))
-        bot.add_handler(MessageHandler(protect_content_command, filters.command('protect_content') & filters.private))
-        bot.add_handler(MessageHandler(handle_settings_input, filters.private & filters.text))
-        bot.add_handler(MessageHandler(genlink_command, filters.command('genlink') & filters.private & filters.user(ADMINS)))
-        bot.add_handler(MessageHandler(batch_command, filters.command('batch') & filters.private & filters.user(ADMINS)))
-        bot.add_handler(MessageHandler(nbatch_command, filters.command('nbatch') & filters.private & filters.user(ADMINS)))
-        bot.add_handler(MessageHandler(custom_batch_command, filters.command('custom_batch') & filters.private & filters.user(ADMINS)))
-        bot.add_handler(MessageHandler(handle_custom_batch_input, filters.private & filters.text))
-        bot.add_handler(MessageHandler(forward_to_channel, filters.channel & filters.user(ADMINS)))
-
-        await bot.start()
-        bot_info = await bot.get_me()
-        print(f"Bot @{bot_info.username} started with token {bot_token[-6:]}")
-        return bot
+        app.TG_BOT_TOKEN = bot_token  # Attach token to client
+        await app.start()
+        bot_info = await app.get_me()
+        print(f"Bot @{bot_info.username} started successfully.")
+        return app
     except Exception as e:
-        print(f"Failed to start bot with token {bot_token[-6:]}: {e}")
+        print(f"Failed to start bot with token ending {bot_token[-6:]}: {e}")
         return None
 
 async def main():
-    """Initialize and run all bots from the database."""
-    main_bot = await initialize_bot(TG_BOT_TOKEN, "main_bot")
+    api_id = int(os.environ.get("APP_ID"))
+    api_hash = os.environ.get("API_HASH")
+    main_bot_token = os.environ.get("TG_BOT_TOKEN")
+    workers = int(os.environ.get("TG_BOT_WORKERS", 4))
+
+    # Start main bot
+    main_bot = await start_bot_with_token(main_bot_token, api_id, api_hash, workers)
     if not main_bot:
-        print("Failed to start main bot. Exiting.")
+        print("Main bot failed to start. Exiting.")
         return
 
-    # Query all bot tokens from the database
-    bot_collection = dbclient[DB_NAME]['bots']
-    bots = bot_collection.find()
-    bot_clients = [main_bot]
+    # Start cloned bots from database
+    bot_collection = dbclient[os.environ.get("DB_NAME")]['bots']
+    cloned_bots = []
+    async for bot_doc in bot_collection.find():
+        bot_token = bot_doc.get('token')
+        if bot_token and bot_token != main_bot_token:  # Avoid restarting main bot
+            bot_client = await start_bot_with_token(bot_token, api_id, api_hash, workers)
+            if bot_client:
+                cloned_bots.append(bot_client)
 
-    # Initialize cloned bots
-    async for bot_data in bots:
-        bot_token = bot_data.get('token')
-        if bot_token and bot_token != TG_BOT_TOKEN:  # Skip main bot token
-            bot_name = f"cloned_bot_{bot_token[-6:]}"
-            cloned_bot = await initialize_bot(bot_token, bot_name)
-            if cloned_bot:
-                bot_clients.append(cloned_bot)
-
-    print(f"Running {len(bot_clients)} bots (1 main + {len(bot_clients)-1} cloned)")
-    
     # Start web server
-    if 'PORT' in os.environ:
-        web_app = await web_server()
-        runner = web.AppRunner(web_app)
-        await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', int(os.environ['PORT']))
-        await site.start()
+    port = int(os.environ.get("PORT", 8080))
+    web_app = await web_server()
+    runner = web.AppRunner(web_app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    print(f"Web server running on port {port}")
 
-    # Keep bots running
-    await asyncio.Event().wait()
+    # Keep all bots running
+    await idle()
+
+    # Cleanup
+    await main_bot.stop()
+    for bot in cloned_bots:
+        await bot.stop()
+    await runner.cleanup()
 
 if __name__ == "__main__":
-    print(f"Starting bot with Pyrogram v{__version__} (Layer {layer})")
     asyncio.run(main())
