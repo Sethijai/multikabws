@@ -6,14 +6,14 @@ from pyrogram.raw.all import layer
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from config import *
 from database.database import dbclient, get_bot
-from start import (
+from plugins.start import (
     start_command, not_joined, get_users, send_text,
     clone_bot_command, force_sub_channel_command, auto_delete_command,
     individual_auto_delete_command, database_channel_id_command, protect_content_command,
     handle_settings_input
 )
-from link_generator import genlink_command, batch_command, nbatch_command, custom_batch_command, handle_custom_batch_input
-from channel_post import forward_to_channel
+from plugins.link_generator import genlink_command, batch_command, nbatch_command, custom_batch_command, handle_custom_batch_input
+from plugins.channel_post import forward_to_channel
 from plugins.web_server import run_web_server
 
 async def initialize_bot(bot_token, bot_name):
