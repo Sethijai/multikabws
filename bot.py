@@ -1,7 +1,6 @@
 # bot.py
 import os
 import asyncio
-import uvloop
 from pyrogram import Client, __version__
 from pyrogram.raw.all import layer
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
@@ -16,8 +15,6 @@ from start import (
 from link_generator import genlink_command, batch_command, nbatch_command, custom_batch_command, handle_custom_batch_input
 from channel_post import forward_to_channel
 from plugins.web_server import run_web_server
-
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 async def initialize_bot(bot_token, bot_name):
     """Initialize a bot with the given token and name."""
