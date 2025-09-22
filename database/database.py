@@ -5,7 +5,8 @@ from config import DB_URI, DB_NAME, ADMINS, FORCE_SUB_CHANNEL, FORCE_SUB_CHANNEL
 dbclient = pymongo.MongoClient(DB_URI)
 database = dbclient[DB_NAME]
 user_data = database['users']
-bot_data = database['bots']  # New collection for cloned bots
+bot_data = database['bots']
+session_data = database['sessions']  # New collection for session data
 
 async def add_bot(token: str, creator_id: int, force_sub_channels: list = None, 
                  bulk_delete_timer: int = None, individual_delete_timer: int = None, 
@@ -58,3 +59,19 @@ async def full_userbase():
 
 async def del_user(user_id: int):
     user_data.delete_one({'_id': user_id})
+
+async def set_session_data(user_id: int, data: dict):
+    """Store session data for a user in MongoDB."""
+    session_data.update_one(
+        {'_id': user_id},
+        {'$set': data},
+        upsert=True
+    )
+
+async def get_session_data(user_id: int):
+    """Retrieve session data for a user from MongoDB."""
+    return session_data.find_one({'_id': user_id}) or {}
+
+async def clear_session_data(user_id: int):
+    """Clear session data for a user."""
+    session_data.delete_one({'_id': user_id})
