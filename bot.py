@@ -3,9 +3,9 @@ import asyncio
 import os
 from pyrogram import Client, idle
 from aiohttp import web
-from route import web_server
-from database.database import dbclient, get_bot
-from config import API_HASH, APP_ID, TG_BOT_TOKEN, TG_BOT_WORKERS
+from plugins.route import web_server
+from database.database import dbclient
+from config import API_HASH, APP_ID, TG_BOT_TOKEN, TG_BOT_WORKERS, DB_NAME
 
 class Bot:
     def __init__(self):
@@ -15,10 +15,11 @@ class Bot:
         self.api_hash = API_HASH or ""
         self.main_bot_token = TG_BOT_TOKEN or ""
         self.workers = TG_BOT_WORKERS or 4
+        self.db_name = DB_NAME
         self.clients = []
 
-        if not all([self.api_id, self.api_hash, self.main_bot_token]):
-            raise ValueError("Missing required configuration: APP_ID, API_HASH, or TG_BOT_TOKEN.")
+        if not all([self.api_id, self.api_hash, self.main_bot_token, self.db_name]):
+            raise ValueError("Missing required configuration: APP_ID, API_HASH, TG_BOT_TOKEN, or DB_NAME.")
 
     async def start_bot_with_token(self, bot_token):
         """Start a bot with the given token."""
@@ -50,13 +51,16 @@ class Bot:
         self.clients.append(main_bot)
 
         # Start cloned bots from database
-        bot_collection = dbclient[os.environ.get("DB_NAME")]['bots']
-        async for bot_doc in bot_collection.find():
-            bot_token = bot_doc.get('token')
-            if bot_token and bot_token != self.main_bot_token:  # Avoid restarting main bot
-                bot_client = await self.start_bot_with_token(bot_token)
-                if bot_client:
-                    self.clients.append(bot_client)
+        try:
+            bot_collection = dbclient[self.db_name]['bots']
+            async for bot_doc in bot_collection.find():
+                bot_token = bot_doc.get('token')
+                if bot_token and bot_token != self.main_bot_token:  # Avoid restarting main bot
+                    bot_client = await self.start_bot_with_token(bot_token)
+                    if bot_client:
+                        self.clients.append(bot_client)
+        except Exception as e:
+            print(f"Failed to access 'bots' collection in database '{self.db_name}': {e}")
 
         # Start web server
         port = int(os.environ.get("PORT", 8080))
