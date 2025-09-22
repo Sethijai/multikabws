@@ -8,7 +8,7 @@ from config import *
 from helper_func import encode
 from database.database import get_bot
 
-@Bot.on_message(filters.private & filters.user(ADMINS) & ~filters.command(['start', 'users', 'broadcast', 'batch', 'genlink', 'stats', 'clone_bot', 'settings']))
+@Bot.on_message(filters.private & filters.user(ADMINS) & ~filters.command(['start', 'users', 'broadcast', 'batch', 'genlink', 'stats', 'clone_bot', 'force_sub_channel', 'auto_delete', 'individual_auto_delete', 'database_channel_id', 'protect_content']))
 async def channel_post(client: Client, message: Message):
     bot_token = client.TG_BOT_TOKEN
     bot_settings = await get_bot(bot_token) or {}
