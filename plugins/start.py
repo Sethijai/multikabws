@@ -202,9 +202,9 @@ async def start_command(client: Client, message: Message):
                         new_keyboard.append([individual_button])
                         reply_markup = InlineKeyboardMarkup(new_keyboard)
                     else:
-                        reply_markup = InlineKeyboardMarkup([[individual_button]])
+                        reply_markup = InlineKeyboardMarkup([individual_button])
                 else:
-                    reply_markup = InlineKeyboardMarkup([[individual_button]])
+                    reply_markup = InlineKeyboardMarkup([individual_button])
 
                 try:
                     copied_msg = await msg.copy(
@@ -281,7 +281,7 @@ async def not_joined(client: Client, message: Message):
                 chat = await client.get_chat(channel)
                 buttons.append([InlineKeyboardButton(f"🌟 Join {name} 🌟", url=chat.invite_link)])
             except:
-                buttons.append([InlineKeyboard traveller_button(f"🌟 Join {name} 🌟", url="https://t.me/weebs_support")])
+                buttons.append([InlineKeyboardButton(f"🌟 Join {name} 🌟", url="https://t.me/weebs_support")])
     
     try:
         buttons.append(
@@ -406,12 +406,13 @@ async def clone_bot_command(client: Client, message: Message):
         await add_bot(
             token=bot_token,
             creator_id=message.from_user.id,
-            force_sub_names=["Channel 1", "Channel 2", "Channel 3", "Channel 4"]  # Default button names
+            force_sub_names=["Channel 1", "Channel 2", "Channel 3", "Channel 4"]
         )
 
         await message.reply_text(
             "✅ Bot added successfully!\n\n"
-            "The bot is initialized with default settings. Use the following commands in the cloned bot to configure it:\n"
+            "The bot is initialized with default settings and will start automatically with the main bot.\n"
+            "Use the following commands in the cloned bot to configure it:\n"
             "/force_sub_channel - Set force-sub channels with custom button names\n"
             "/auto_delete - Set bulk auto-delete timer\n"
             "/individual_auto_delete - Set individual auto-delete timer\n"
