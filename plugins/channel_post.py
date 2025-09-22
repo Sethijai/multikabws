@@ -4,7 +4,7 @@ from pyrogram import filters, Client
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import FloodWait
 from bot import Bot
-from config import DISABLE_CHANNEL_BUTTON
+from config import DISABLE_CHANNEL_BUTTON, ADMINS
 from helper_func import encode
 from database.database import get_bot
 
