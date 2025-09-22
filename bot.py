@@ -3,7 +3,7 @@ import asyncio
 import os
 from pyrogram import Client, idle
 from aiohttp import web
-from route import web_server
+from plugins.route import web_server
 from config import *
 from database.database import dbclient, get_bot
 
